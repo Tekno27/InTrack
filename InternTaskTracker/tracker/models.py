@@ -117,7 +117,16 @@ class Task(models.Model):
     class Status(models.TextChoices):
         PENDING = "PENDING", "Pending"
         IN_PROGRESS = "IN_PROGRESS", "In Progress"
-        COMPLETED = "COMPLETED", "Completed"
+        SUBMITTED = "SUBMITTED", "Submitted"
+        CHANGES_REQUESTED = "CHANGES_REQUESTED", "Changes Requested"
+        APPROVED = "APPROVED", "Approved"
+
+    # Statuses an intern may set themselves (cannot approve their own work).
+    INTERN_EDITABLE_STATUSES = (
+        Status.PENDING,
+        Status.IN_PROGRESS,
+        Status.CHANGES_REQUESTED,
+    )
 
     intern = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -203,8 +212,46 @@ class Task(models.Model):
             return f"{hours}h"
         return f"{minutes}m"
 
+    @property
+    def can_submit_for_review(self):
+        return self.status in {
+            self.Status.PENDING,
+            self.Status.IN_PROGRESS,
+            self.Status.CHANGES_REQUESTED,
+        }
+
+    @property
+    def awaiting_review(self):
+        return self.status == self.Status.SUBMITTED
+
     def __str__(self):
         return f"{self.title} ({self.date})"
+
+
+class TaskReview(models.Model):
+    class Action(models.TextChoices):
+        APPROVE = "APPROVE", "Approved"
+        REQUEST_CHANGES = "REQUEST_CHANGES", "Changes Requested"
+
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+    )
+    reviewer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="task_reviews",
+    )
+    action = models.CharField(max_length=20, choices=Action.choices)
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.get_action_display()} — {self.task.title}"
 
 
 class Invitation(models.Model):

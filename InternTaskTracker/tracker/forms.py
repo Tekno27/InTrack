@@ -123,12 +123,21 @@ class InternTaskForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if user:
             self.fields["category"].queryset = categories_for(user)
+        self.fields["status"].choices = [
+            (s, label) for s, label in Task.Status.choices
+            if s in {
+                Task.Status.PENDING,
+                Task.Status.IN_PROGRESS,
+                Task.Status.CHANGES_REQUESTED,
+            }
+        ]
 
     def clean(self):
         cleaned = super().clean()
         start, end = cleaned.get("start_time"), cleaned.get("end_time")
         if not start or not end:
-            raise forms.ValidationError("Start and end times are required for logged work.")
+            raise forms.ValidationError(
+                "Start and end times are required for logged work.")
         return cleaned
 
     def clean_attachment(self):
@@ -157,6 +166,10 @@ class AssignTaskForm(forms.ModelForm):
         if user:
             self.fields["intern"].queryset = assignable_interns_for(user)
             self.fields["category"].queryset = categories_for(user)
+        self.fields["status"].choices = [
+            (s, label) for s, label in Task.Status.choices
+            if s in {Task.Status.PENDING, Task.Status.IN_PROGRESS}
+        ]
 
 
 class TaskUpdateForm(forms.ModelForm):
@@ -178,10 +191,41 @@ class TaskUpdateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if user:
             self.fields["category"].queryset = categories_for(user)
-        # Assigned tasks: intern mainly updates status and logged time.
+        if user and user.is_intern:
+            self.fields["status"].choices = [
+                (s, label) for s, label in Task.Status.choices
+                if s in {
+                    Task.Status.PENDING,
+                    Task.Status.IN_PROGRESS,
+                    Task.Status.CHANGES_REQUESTED,
+                }
+            ]
         if assigned and user and user.is_intern:
             for field in ("title", "description", "category", "priority"):
                 self.fields[field].disabled = True
+
+
+class TaskReviewForm(forms.Form):
+    ACTION_CHOICES = (
+        ("APPROVE", "Approve"),
+        ("REQUEST_CHANGES", "Request changes"),
+    )
+    action = forms.ChoiceField(choices=ACTION_CHOICES, widget=forms.RadioSelect)
+    comment = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            "rows": 3,
+            "placeholder": "Feedback for the intern (required when requesting changes)...",
+            "class": "form-control",
+        }),
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("action") == "REQUEST_CHANGES" and not (
+                cleaned.get("comment") or "").strip():
+            self.add_error("comment", "Please explain what needs to be changed.")
+        return cleaned
 
 
 class UserUpdateForm(forms.ModelForm):

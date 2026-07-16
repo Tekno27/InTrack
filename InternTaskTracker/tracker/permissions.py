@@ -44,6 +44,12 @@ def can_view_task(user, task):
 
 def can_edit_task(user, task):
     """Interns edit their own tasks; assigners can edit assigned tasks they created."""
+    if task.status == Task.Status.APPROVED:
+        # Approved work is locked for interns; management may still adjust.
+        if user.is_intern:
+            return False
+    if task.status == Task.Status.SUBMITTED and user.is_intern:
+        return False
     if user.is_intern and task.intern_id == user.pk:
         return True
     if user.is_management and task.assigned_by_id == user.pk:
@@ -54,6 +60,9 @@ def can_edit_task(user, task):
 
 
 def can_delete_task(user, task):
+    if task.status in {Task.Status.SUBMITTED, Task.Status.APPROVED}:
+        if user.is_intern:
+            return False
     if user.is_intern and task.intern_id == user.pk and not task.is_assigned:
         return True
     if user.is_management and task.assigned_by_id == user.pk:
@@ -61,6 +70,21 @@ def can_delete_task(user, task):
     if user.is_head and task.intern.department_id == user.department_id:
         return True
     return False
+
+
+def can_review_task(user, task):
+    """Supervisor (of the intern) or department head may review submitted work."""
+    if not user.is_management or task.status != Task.Status.SUBMITTED:
+        return False
+    return visible_interns_for(user).filter(pk=task.intern_id).exists()
+
+
+def can_submit_task(user, task):
+    return (
+        user.is_intern
+        and task.intern_id == user.pk
+        and task.can_submit_for_review
+    )
 
 
 def can_message(user, other):

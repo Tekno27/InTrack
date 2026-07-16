@@ -10,6 +10,7 @@ from .models import (
     Notification,
     Profile,
     Task,
+    TaskReview,
     User,
 )
 
@@ -64,6 +65,13 @@ class TaskAdmin(admin.ModelAdmin):
     search_fields = ("title", "description", "intern__username",
                      "intern__first_name", "intern__last_name")
     date_hierarchy = "date"
+
+
+@admin.register(TaskReview)
+class TaskReviewAdmin(admin.ModelAdmin):
+    list_display = ("task", "reviewer", "action", "created_at")
+    list_filter = ("action",)
+    search_fields = ("task__title", "reviewer__username", "comment")
 
 
 @admin.register(Invitation)

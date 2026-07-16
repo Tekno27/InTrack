@@ -7,28 +7,35 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.paginator import Paginator
 from django.db.models import Count, DurationField, Q, Sum, Value
 from django.db.models.functions import Coalesce
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from .forms import (
     AcceptInviteForm,
     AssignInternForm,
     AssignTaskForm,
+    CategoryForm,
     InviteUserForm,
     InternTaskForm,
     MessageForm,
     ProfileUpdateForm,
     StartChatForm,
+    TaskReviewForm,
     TaskUpdateForm,
     UserUpdateForm,
 )
-from .invites import create_invitation, send_invitation_email
-from .models import Category, Conversation, Invitation, Message, Notification, Task, User
+from .invites import create_invitation, invitation_absolute_url, send_invitation_email
+from .models import (
+    Category, Conversation, Invitation, Message, Notification, Task, TaskReview, User,
+)
 from .permissions import (
     can_delete_task,
     can_edit_task,
     can_message,
+    can_review_task,
+    can_submit_task,
     can_view_task,
     categories_for,
     messageable_users_for,
@@ -163,9 +170,11 @@ def intern_dashboard(request):
         "hours_month": hours(tasks.filter(
             date__year=today.year, date__month=today.month).aggregate(
             t=Coalesce(Sum("duration"), ZERO))["t"]),
-        "completed": tasks.filter(status=Task.Status.COMPLETED).count(),
+        "completed": tasks.filter(status=Task.Status.APPROVED).count(),
         "pending": tasks.filter(status=Task.Status.PENDING).count(),
         "in_progress": tasks.filter(status=Task.Status.IN_PROGRESS).count(),
+        "changes_requested": tasks.filter(status=Task.Status.CHANGES_REQUESTED).count(),
+        "submitted": tasks.filter(status=Task.Status.SUBMITTED).count(),
     }
     chart_labels, chart_data = weekly_chart_data(tasks, today)
 
@@ -187,7 +196,9 @@ def management_dashboard(request, scope="team"):
         "total_interns": interns.count(),
         "total_tasks": tasks.count(),
         "active_tasks": tasks.filter(
-            status__in=[Task.Status.PENDING, Task.Status.IN_PROGRESS]).count(),
+            status__in=[Task.Status.PENDING, Task.Status.IN_PROGRESS,
+                        Task.Status.CHANGES_REQUESTED]).count(),
+        "awaiting_review": tasks.filter(status=Task.Status.SUBMITTED).count(),
         "total_hours": hours(tasks.aggregate(t=Coalesce(Sum("duration"), ZERO))["t"]),
     }
 
@@ -242,11 +253,92 @@ def task_detail(request, pk):
     if not can_view_task(request.user, task):
         messages.error(request, "You do not have permission to view this task.")
         return redirect("task_list")
+    review_form = TaskReviewForm() if can_review_task(request.user, task) else None
     return render(request, "tasks/task_detail.html", {
         "task": task,
         "can_edit": can_edit_task(request.user, task),
         "can_delete": can_delete_task(request.user, task),
+        "can_submit": can_submit_task(request.user, task),
+        "can_review": can_review_task(request.user, task),
+        "review_form": review_form,
+        "reviews": task.reviews.select_related("reviewer"),
     })
+
+
+@login_required
+@require_POST
+def task_submit(request, pk):
+    task = get_object_or_404(Task, pk=pk)
+    if not can_submit_task(request.user, task):
+        messages.error(request, "You cannot submit this task for review.")
+        return redirect("task_detail", pk=pk)
+    task.status = Task.Status.SUBMITTED
+    task.save(update_fields=["status", "updated_at"])
+
+    reviewers = []
+    if task.intern.supervisor_id:
+        reviewers.append(task.intern.supervisor)
+    head = User.objects.filter(
+        role=User.Roles.HEAD, department=task.intern.department).first()
+    if head and head not in reviewers:
+        reviewers.append(head)
+    for reviewer in reviewers:
+        notify(reviewer, "Task submitted for review",
+               f"{request.user} submitted \"{task.title}\" for review.",
+               link=f"/tasks/{task.pk}/")
+
+    messages.success(request, "Task submitted for review.")
+    return redirect("task_detail", pk=pk)
+
+
+@login_required
+@require_POST
+def task_review(request, pk):
+    task = get_object_or_404(Task, pk=pk)
+    if not can_review_task(request.user, task):
+        messages.error(request, "You cannot review this task.")
+        return redirect("task_detail", pk=pk)
+
+    form = TaskReviewForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Please fix the review form errors.")
+        return redirect("task_detail", pk=pk)
+
+    action = form.cleaned_data["action"]
+    comment = (form.cleaned_data.get("comment") or "").strip()
+    if action == "APPROVE":
+        task.status = Task.Status.APPROVED
+        review_action = TaskReview.Action.APPROVE
+        notify(task.intern, "Task approved",
+               f"{request.user} approved \"{task.title}\".",
+               link=f"/tasks/{task.pk}/")
+        messages.success(request, "Task approved.")
+    else:
+        task.status = Task.Status.CHANGES_REQUESTED
+        review_action = TaskReview.Action.REQUEST_CHANGES
+        notify(task.intern, "Changes requested",
+               f"{request.user} requested changes on \"{task.title}\": {comment}",
+               link=f"/tasks/{task.pk}/")
+        messages.success(request, "Changes requested. The intern has been notified.")
+
+    task.save(update_fields=["status", "updated_at"])
+    TaskReview.objects.create(
+        task=task, reviewer=request.user, action=review_action, comment=comment)
+    return redirect("task_detail", pk=pk)
+
+
+@login_required
+def task_attachment(request, pk):
+    task = get_object_or_404(Task, pk=pk)
+    if not can_view_task(request.user, task):
+        return HttpResponseForbidden("Not allowed.")
+    if not task.attachment:
+        raise Http404("No attachment.")
+    return FileResponse(
+        task.attachment.open("rb"),
+        as_attachment=True,
+        filename=task.attachment.name.split("/")[-1],
+    )
 
 
 @login_required
@@ -332,14 +424,21 @@ def task_delete(request, pk):
 def team_list(request):
     dept = request.user.department
     members = User.objects.filter(department=dept).exclude(pk=request.user.pk).select_related(
-        "supervisor", "profile").order_by("role", "first_name")
+        "supervisor", "profile", "invitation").order_by("role", "first_name")
     if q := request.GET.get("q", "").strip():
         members = members.filter(
             Q(first_name__icontains=q) | Q(last_name__icontains=q) |
             Q(username__icontains=q) | Q(email__icontains=q)
         )
+    member_rows = []
+    for member in members:
+        invite_link = ""
+        inv = Invitation.objects.filter(user=member).first()
+        if inv and not member.email_verified and not inv.is_accepted and not inv.is_expired:
+            invite_link = invitation_absolute_url(request, inv)
+        member_rows.append({"user": member, "invite_link": invite_link})
     return render(request, "team/team_list.html", {
-        "members": members,
+        "member_rows": member_rows,
         "department": dept,
     })
 
@@ -356,19 +455,19 @@ def invite_user(request):
         if form.is_valid():
             user = form.save()
             invitation = create_invitation(user, invited_by=request.user)
+            link = invitation_absolute_url(request, invitation)
             try:
                 send_invitation_email(request, invitation)
+                messages.success(
+                    request,
+                    f"{user.get_role_display()} {user} created. "
+                    f"Invite emailed to {user.email}. Activation link: {link}"
+                )
             except Exception:
                 messages.warning(
                     request,
                     f"{user} was created, but the invite email could not be sent. "
-                    "You can resend it from the team page."
-                )
-            else:
-                messages.success(
-                    request,
-                    f"{user.get_role_display()} {user} created. "
-                    f"An invite was sent to {user.email}."
+                    f"Share this activation link: {link}"
                 )
             return redirect("team_list")
     else:
@@ -379,18 +478,67 @@ def invite_user(request):
 
 @login_required
 @head_required
+@require_POST
 def resend_invite(request, pk):
     member = get_object_or_404(User, pk=pk, department=request.user.department)
     if member.email_verified and not member.must_set_password:
         messages.info(request, f"{member} has already activated their account.")
         return redirect("team_list")
     invitation = create_invitation(member, invited_by=request.user)
+    link = invitation_absolute_url(request, invitation)
     try:
         send_invitation_email(request, invitation)
-        messages.success(request, f"Invitation resent to {member.email}.")
+        messages.success(
+            request,
+            f"Invitation resent to {member.email}. Activation link: {link}"
+        )
     except Exception:
-        messages.error(request, "Could not send the invitation email.")
+        messages.warning(
+            request,
+            f"Email could not be sent. Share this activation link: {link}"
+        )
     return redirect("team_list")
+
+
+@login_required
+@head_required
+def category_list(request):
+    categories = Category.objects.filter(department=request.user.department)
+    return render(request, "team/category_list.html", {"categories": categories})
+
+
+@login_required
+@head_required
+def category_create(request):
+    if request.method == "POST":
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            category = form.save(commit=False)
+            category.department = request.user.department
+            category.save()
+            messages.success(request, f'Category "{category.name}" created.')
+            return redirect("category_list")
+    else:
+        form = CategoryForm()
+    return render(request, "team/category_form.html", {
+        "form": form, "title": "Add Category"})
+
+
+@login_required
+@head_required
+def category_edit(request, pk):
+    category = get_object_or_404(
+        Category, pk=pk, department=request.user.department)
+    if request.method == "POST":
+        form = CategoryForm(request.POST, instance=category)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Category updated.")
+            return redirect("category_list")
+    else:
+        form = CategoryForm(instance=category)
+    return render(request, "team/category_form.html", {
+        "form": form, "title": "Edit Category"})
 
 
 @login_required
@@ -430,7 +578,8 @@ def intern_list(request):
     interns = interns.annotate(
         total_hours=Coalesce(Sum("tasks__duration"), ZERO),
         task_count=Count("tasks"),
-        completed_count=Count("tasks", filter=Q(tasks__status=Task.Status.COMPLETED)),
+        completed_count=Count(
+            "tasks", filter=Q(tasks__status=Task.Status.APPROVED)),
     )
     rows = [
         {"user": u, "hours": hours(u.total_hours), "task_count": u.task_count,
@@ -646,14 +795,29 @@ def export_pdf(request):
 def chat_inbox(request):
     conversations = (
         Conversation.objects.filter(participants=request.user)
-        .prefetch_related("participants", "messages")
+        .annotate(
+            unread=Count(
+                "messages",
+                filter=Q(messages__is_read=False) & ~Q(messages__sender=request.user),
+            ),
+            message_count=Count("messages"),
+        )
+        .prefetch_related("participants", "messages__sender")
     )
     rows = []
     for conv in conversations:
         other = conv.other_participant(request.user)
-        last = conv.last_message()
-        unread = conv.messages.filter(is_read=False).exclude(sender=request.user).count()
-        rows.append({"conversation": conv, "other": other, "last": last, "unread": unread})
+        last = conv.messages.all()
+        last_msg = list(last)[-1] if last else None
+        # Prefer last by created_at from prefetched cache
+        if last:
+            last_msg = max(last, key=lambda m: m.created_at)
+        rows.append({
+            "conversation": conv,
+            "other": other,
+            "last": last_msg,
+            "unread": conv.unread,
+        })
 
     start_form = StartChatForm(queryset=messageable_users_for(request.user))
     return render(request, "chat/inbox.html", {
@@ -664,8 +828,18 @@ def chat_inbox(request):
 
 @login_required
 def chat_start(request):
-    if request.method != "POST":
-        return redirect("chat_inbox")
+    """Start a chat via POST form or GET ?user=<id> from team/intern lists."""
+    if request.method == "GET":
+        user_id = request.GET.get("user")
+        if not user_id:
+            return redirect("chat_inbox")
+        other = get_object_or_404(User, pk=user_id, is_active=True)
+        if not can_message(request.user, other):
+            messages.error(request, "You are not allowed to message that user.")
+            return redirect("chat_inbox")
+        conversation, _ = Conversation.between(request.user, other)
+        return redirect("chat_thread", pk=conversation.pk)
+
     form = StartChatForm(request.POST, queryset=messageable_users_for(request.user))
     if form.is_valid():
         other = form.cleaned_data["recipient"]

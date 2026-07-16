@@ -4,28 +4,35 @@
 
 {% block content %}
 <div class="row g-3 mb-4">
-    <div class="col-6 col-lg-3">
+    <div class="col-6 col-lg">
         <div class="stat-card">
             <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-people-fill"></i></div>
             <div class="stat-value">{{ stats.total_interns }}</div>
             <div class="stat-label">Total Interns</div>
         </div>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col-6 col-lg">
         <div class="stat-card">
             <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-list-check"></i></div>
             <div class="stat-value">{{ stats.total_tasks }}</div>
             <div class="stat-label">Total Tasks</div>
         </div>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col-6 col-lg">
         <div class="stat-card">
             <div class="stat-icon bg-warning-subtle text-warning"><i class="bi bi-lightning-fill"></i></div>
             <div class="stat-value">{{ stats.active_tasks }}</div>
             <div class="stat-label">Active Tasks</div>
         </div>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col-6 col-lg">
+        <div class="stat-card">
+            <div class="stat-icon bg-danger-subtle text-danger"><i class="bi bi-inbox-fill"></i></div>
+            <div class="stat-value">{{ stats.awaiting_review }}</div>
+            <div class="stat-label">Awaiting Review</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg">
         <div class="stat-card">
             <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-clock-fill"></i></div>
             <div class="stat-value">{{ stats.total_hours }}</div>

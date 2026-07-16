@@ -8,7 +8,8 @@
         <input type="text" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Search team members...">
         <button class="btn btn-primary"><i class="bi bi-search"></i></button>
     </form>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'category_list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-tags"></i> Categories</a>
         <a href="{% url 'assign_intern' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-person-check"></i> Assign Intern</a>
         <a href="{% url 'invite_user' %}" class="btn btn-primary btn-sm"><i class="bi bi-person-plus"></i> Invite Member</a>
     </div>
@@ -24,7 +25,8 @@
                 </tr>
             </thead>
             <tbody>
-            {% for member in members %}
+            {% for row in member_rows %}
+            {% with member=row.user %}
             <tr>
                 <td><strong>{{ member.get_full_name|default:member.username }}</strong></td>
                 <td><span class="badge bg-primary-subtle text-primary">{{ member.get_role_display }}</span></td>
@@ -43,13 +45,23 @@
                         <span class="badge bg-warning-subtle text-warning">Invite pending</span>
                     {% endif %}
                 </td>
-                <td class="text-end">
+                <td class="text-end text-nowrap">
                     {% if not member.email_verified %}
-                    <a href="{% url 'resend_invite' member.pk %}" class="btn btn-sm btn-outline-secondary">Resend invite</a>
+                    <form method="post" action="{% url 'resend_invite' member.pk %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">Resend invite</button>
+                    </form>
+                    {% if row.invite_link %}
+                    <button type="button" class="btn btn-sm btn-outline-primary copy-link"
+                            data-link="{{ row.invite_link }}" title="Copy invite link">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
                     {% endif %}
-                    <a href="{% url 'chat_inbox' %}" class="btn btn-sm btn-outline-primary">Chat</a>
+                    {% endif %}
+                    <a href="{% url 'chat_start' %}?user={{ member.pk }}" class="btn btn-sm btn-outline-primary">Chat</a>
                 </td>
             </tr>
+            {% endwith %}
             {% empty %}
             <tr><td colspan="6" class="text-center text-muted py-5">No team members yet. Invite a supervisor or intern.</td></tr>
             {% endfor %}
@@ -57,4 +69,20 @@
         </table>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.copy-link').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(btn.dataset.link);
+            btn.innerHTML = '<i class="bi bi-check2"></i>';
+            setTimeout(() => btn.innerHTML = '<i class="bi bi-clipboard"></i>', 1500);
+        } catch (e) {
+            prompt('Copy this invite link:', btn.dataset.link);
+        }
+    });
+});
+</script>
 {% endblock %}

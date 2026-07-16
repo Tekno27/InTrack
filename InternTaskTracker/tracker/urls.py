@@ -8,6 +8,17 @@ urlpatterns = [
     path("login/", auth_views.LoginView.as_view(), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("invite/<str:token>/", views.accept_invite, name="accept_invite"),
+    path("password-change/",
+         auth_views.PasswordChangeView.as_view(
+             template_name="registration/password_change_form.html",
+             success_url="/password-change/done/",
+         ),
+         name="password_change"),
+    path("password-change/done/",
+         auth_views.PasswordChangeDoneView.as_view(
+             template_name="registration/password_change_done.html",
+         ),
+         name="password_change_done"),
     path("password-reset/",
          auth_views.PasswordResetView.as_view(),
          name="password_reset"),
@@ -30,12 +41,18 @@ urlpatterns = [
     path("tasks/<int:pk>/", views.task_detail, name="task_detail"),
     path("tasks/<int:pk>/edit/", views.task_update, name="task_update"),
     path("tasks/<int:pk>/delete/", views.task_delete, name="task_delete"),
+    path("tasks/<int:pk>/submit/", views.task_submit, name="task_submit"),
+    path("tasks/<int:pk>/review/", views.task_review, name="task_review"),
+    path("tasks/<int:pk>/attachment/", views.task_attachment, name="task_attachment"),
 
     # Team (department head)
     path("team/", views.team_list, name="team_list"),
     path("team/invite/", views.invite_user, name="invite_user"),
     path("team/assign/", views.assign_intern, name="assign_intern"),
     path("team/<int:pk>/resend-invite/", views.resend_invite, name="resend_invite"),
+    path("team/categories/", views.category_list, name="category_list"),
+    path("team/categories/add/", views.category_create, name="category_create"),
+    path("team/categories/<int:pk>/edit/", views.category_edit, name="category_edit"),
 
     # Supervisor / head
     path("interns/", views.intern_list, name="intern_list"),

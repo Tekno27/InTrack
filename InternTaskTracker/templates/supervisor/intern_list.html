@@ -38,8 +38,9 @@
                 <td>{{ row.task_count }}</td>
                 <td>{{ row.completed_count }}</td>
                 <td>{{ row.hours }} h</td>
-                <td class="text-end">
+                <td class="text-end text-nowrap">
                     <a href="{% url 'task_list' %}?intern={{ row.user.pk }}" class="btn btn-sm btn-outline-primary">View tasks</a>
+                    <a href="{% url 'chat_start' %}?user={{ row.user.pk }}" class="btn btn-sm btn-outline-secondary">Chat</a>
                 </td>
             </tr>
             {% empty %}

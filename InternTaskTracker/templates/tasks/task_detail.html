@@ -1,9 +1,10 @@
 {% extends "base.html" %}
+{% load crispy_forms_tags %}
 {% block title %}{{ task.title }}{% endblock %}
 {% block page_title %}Task Details{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
+<div class="row g-3">
     <div class="col-lg-8">
         <div class="card panel">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -47,7 +48,7 @@
                     {% if task.attachment %}
                     <dt class="col-sm-3">Attachment</dt>
                     <dd class="col-sm-9">
-                        <a href="{{ task.attachment.url }}" target="_blank">
+                        <a href="{% url 'task_attachment' task.pk %}">
                             <i class="bi bi-paperclip"></i> Download attachment
                         </a>
                     </dd>
@@ -56,7 +57,7 @@
                     <dd class="col-sm-9 text-muted small">Created {{ task.created_at }} · Updated {{ task.updated_at }}</dd>
                 </dl>
             </div>
-            <div class="card-footer d-flex gap-2">
+            <div class="card-footer d-flex flex-wrap gap-2">
                 <a href="{% url 'task_list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Back</a>
                 {% if can_edit %}
                 <a href="{% url 'task_update' task.pk %}" class="btn btn-primary btn-sm"><i class="bi bi-pencil"></i> Edit</a>
@@ -64,6 +65,64 @@
                 {% if can_delete %}
                 <a href="{% url 'task_delete' task.pk %}" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> Delete</a>
                 {% endif %}
+                {% if can_submit %}
+                <form method="post" action="{% url 'task_submit' task.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="bi bi-send-check"></i> Submit for Review
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if can_review and review_form %}
+        <div class="card panel mt-3 border-primary">
+            <div class="card-header">Review this task</div>
+            <div class="card-body">
+                <form method="post" action="{% url 'task_review' task.pk %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        {% for radio in review_form.action %}
+                        <div class="form-check">{{ radio }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Comment</label>
+                        {{ review_form.comment }}
+                        {% if review_form.comment.errors %}
+                        <div class="text-danger small">{{ review_form.comment.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit review</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card panel">
+            <div class="card-header">Review history</div>
+            <div class="list-group list-group-flush">
+                {% for review in reviews %}
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between">
+                        <strong>
+                            {% if review.action == "APPROVE" %}
+                            <span class="text-success"><i class="bi bi-check-circle"></i> Approved</span>
+                            {% else %}
+                            <span class="text-warning"><i class="bi bi-arrow-counterclockwise"></i> Changes requested</span>
+                            {% endif %}
+                        </strong>
+                        <small class="text-muted">{{ review.created_at|timesince }} ago</small>
+                    </div>
+                    <div class="small text-muted">by {{ review.reviewer }}</div>
+                    {% if review.comment %}<div class="mt-1">{{ review.comment|linebreaksbr }}</div>{% endif %}
+                </div>
+                {% empty %}
+                <div class="list-group-item text-muted text-center py-4">No reviews yet.</div>
+                {% endfor %}
             </div>
         </div>
     </div>

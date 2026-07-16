@@ -33,7 +33,7 @@
             </a>
             {% elif user.is_management %}
             {% if user.is_head %}
-            <a href="{% url 'team_list' %}" class="{% if 'team' in request.resolver_match.url_name or request.resolver_match.url_name == 'invite_user' or request.resolver_match.url_name == 'assign_intern' %}active{% endif %}">
+            <a href="{% url 'team_list' %}" class="{% if 'team' in request.resolver_match.url_name or request.resolver_match.url_name == 'invite_user' or request.resolver_match.url_name == 'assign_intern' or 'category' in request.resolver_match.url_name %}active{% endif %}">
                 <i class="bi bi-building"></i> My Team
             </a>
             {% endif %}
