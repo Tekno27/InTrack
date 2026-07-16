@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Interns{% endblock %}
+{% block page_title %}All Interns{% endblock %}
+
+{% block content %}
+<div class="card panel mb-3">
+    <div class="card-body">
+        <form method="get" class="d-flex gap-2">
+            <input type="text" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Search interns by name, username or email...">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i></button>
+            <a href="{% url 'intern_list' %}" class="btn btn-outline-secondary">Clear</a>
+        </form>
+    </div>
+</div>
+
+<div class="card panel">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr><th>Intern</th><th>Email</th><th>Department</th><th>Tasks</th><th>Completed</th><th>Hours</th><th></th></tr>
+            </thead>
+            <tbody>
+            {% for row in rows %}
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        {% if row.user.profile.profile_picture %}
+                        <img src="{{ row.user.profile.profile_picture.url }}" class="avatar" alt="">
+                        {% else %}
+                        <span class="avatar avatar-initials">{{ row.user.first_name|first|default:row.user.username|first|upper }}</span>
+                        {% endif %}
+                        <strong>{{ row.user.get_full_name|default:row.user.username }}</strong>
+                    </div>
+                </td>
+                <td>{{ row.user.email|default:"—" }}</td>
+                <td>{{ row.user.profile.department|default:"—" }}</td>
+                <td>{{ row.task_count }}</td>
+                <td>{{ row.completed_count }}</td>
+                <td>{{ row.hours }} h</td>
+                <td class="text-end">
+                    <a href="{% url 'task_list' %}?intern={{ row.user.pk }}" class="btn btn-sm btn-outline-primary">View tasks</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center text-muted py-5">No interns found.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

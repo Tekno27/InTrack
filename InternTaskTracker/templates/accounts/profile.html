@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Profile{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-4">
+        <div class="card panel text-center mb-3">
+            <div class="card-body">
+                {% if user.profile.profile_picture %}
+                <img src="{{ user.profile.profile_picture.url }}" class="avatar avatar-xl mb-3" alt="Profile picture">
+                {% else %}
+                <span class="avatar avatar-xl avatar-initials mb-3">{{ user.first_name|first|default:user.username|first|upper }}</span>
+                {% endif %}
+                <h5 class="mb-0">{{ user.get_full_name|default:user.username }}</h5>
+                <p class="text-muted mb-1">{{ user.get_role_display }}</p>
+                {% if user.profile.department %}
+                <span class="badge bg-primary-subtle text-primary">{{ user.profile.department }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card panel">
+            <div class="card-header">Edit Profile</div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    {{ user_form|crispy }}
+                    {{ profile_form|crispy }}
+                    <button type="submit" class="btn btn-primary mt-2"><i class="bi bi-check-lg"></i> Save Changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block page_title %}Reports{% endblock %}
+
+{% block content %}
+<div class="card panel mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-2 col-6">
+                <label class="form-label small">Period</label>
+                <select name="period" class="form-select">
+                    <option value="">All time</option>
+                    <option value="daily" {% if request.GET.period == 'daily' %}selected{% endif %}>Today</option>
+                    <option value="weekly" {% if request.GET.period == 'weekly' %}selected{% endif %}>This Week</option>
+                    <option value="monthly" {% if request.GET.period == 'monthly' %}selected{% endif %}>This Month</option>
+                </select>
+            </div>
+            <div class="col-md-2 col-6">
+                <label class="form-label small">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    {% for value, label in statuses %}
+                    <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 col-6">
+                <label class="form-label small">Category</label>
+                <select name="category" class="form-select">
+                    <option value="">All</option>
+                    {% for c in categories %}
+                    <option value="{{ c.pk }}" {% if request.GET.category == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% if interns %}
+            <div class="col-md-2 col-6">
+                <label class="form-label small">Intern</label>
+                <select name="intern" class="form-select">
+                    <option value="">All</option>
+                    {% for i in interns %}
+                    <option value="{{ i.pk }}" {% if request.GET.intern == i.pk|stringformat:"s" %}selected{% endif %}>{{ i.get_full_name|default:i.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-md-2 col-6">
+                <label class="form-label small">Month</label>
+                <input type="month" name="month" value="{{ request.GET.month }}" class="form-control">
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i> Apply</button>
+                <a href="{% url 'reports' %}" class="btn btn-outline-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <span class="text-muted small">{{ task_count }} task{{ task_count|pluralize }} · {{ total_hours }} hours total</span>
+    <div class="btn-group">
+        <a href="{% url 'export_pdf' %}?{{ request.GET.urlencode }}" class="btn btn-outline-danger btn-sm"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+        <a href="{% url 'export_excel' %}?{{ request.GET.urlencode }}" class="btn btn-outline-success btn-sm"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+        <a href="{% url 'export_csv' %}?{{ request.GET.urlencode }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-filetype-csv"></i> CSV</a>
+    </div>
+</div>
+
+<div class="card panel">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    {% if user.is_supervisor %}<th>Intern</th>{% endif %}
+                    <th>Task</th><th>Category</th><th>Time</th><th>Hours</th><th>Priority</th><th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for task in tasks %}
+            <tr>
+                <td>{{ task.date }}</td>
+                {% if user.is_supervisor %}
+                <td>{{ task.intern.get_full_name|default:task.intern.username }}</td>
+                {% endif %}
+                <td><a href="{% url 'task_detail' task.pk %}">{{ task.title|truncatechars:40 }}</a></td>
+                <td>{{ task.category.name|default:"—" }}</td>
+                <td class="text-nowrap">{{ task.start_time|time:"H:i" }}–{{ task.end_time|time:"H:i" }}</td>
+                <td>{{ task.duration_hours }}</td>
+                <td><span class="badge priority-{{ task.priority|lower }}">{{ task.get_priority_display }}</span></td>
+                <td><span class="badge status-{{ task.status|lower }}">{{ task.get_status_display }}</span></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="text-center text-muted py-5">No tasks match this report.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

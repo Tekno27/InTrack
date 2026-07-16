@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Supervisor Dashboard{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-people-fill"></i></div>
+            <div class="stat-value">{{ stats.total_interns }}</div>
+            <div class="stat-label">Total Interns</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-list-check"></i></div>
+            <div class="stat-value">{{ stats.total_tasks }}</div>
+            <div class="stat-label">Total Tasks</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon bg-warning-subtle text-warning"><i class="bi bi-lightning-fill"></i></div>
+            <div class="stat-value">{{ stats.active_tasks }}</div>
+            <div class="stat-label">Active Tasks</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-clock-fill"></i></div>
+            <div class="stat-value">{{ stats.total_hours }}</div>
+            <div class="stat-label">Hours Worked</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card panel mb-3">
+            <div class="card-header">This Week's Hours (all interns)</div>
+            <div class="card-body"><canvas id="weeklyChart" height="200"></canvas></div>
+        </div>
+        <div class="card panel">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                Recent Submissions
+                <a href="{% url 'task_list' %}" class="small">View all</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead><tr><th>Intern</th><th>Task</th><th>Date</th><th>Hours</th><th>Status</th></tr></thead>
+                    <tbody>
+                    {% for task in recent_tasks %}
+                    <tr>
+                        <td>{{ task.intern.get_full_name|default:task.intern.username }}</td>
+                        <td><a href="{% url 'task_detail' task.pk %}">{{ task.title|truncatechars:35 }}</a></td>
+                        <td>{{ task.date }}</td>
+                        <td>{{ task.duration_display }}</td>
+                        <td><span class="badge status-{{ task.status|lower }}">{{ task.get_status_display }}</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">No tasks submitted yet.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card panel">
+            <div class="card-header">Top Performing Interns</div>
+            <div class="list-group list-group-flush">
+                {% for row in top_interns %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ row.user.get_full_name|default:row.user.username }}</strong>
+                        <small class="text-muted d-block">{{ row.task_count }} task{{ row.task_count|pluralize }}</small>
+                    </div>
+                    <span class="badge bg-primary rounded-pill">{{ row.hours }} h</span>
+                </div>
+                {% empty %}
+                <div class="list-group-item text-muted text-center py-4">No intern activity yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ chart_labels|json_script:"chart-labels" }}
+{{ chart_data|json_script:"chart-data" }}
+<script>
+new Chart(document.getElementById('weeklyChart'), {
+    type: 'line',
+    data: {
+        labels: JSON.parse(document.getElementById('chart-labels').textContent),
+        datasets: [{
+            label: 'Hours',
+            data: JSON.parse(document.getElementById('chart-data').textContent),
+            borderColor: '#2563EB',
+            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+            fill: true,
+            tension: 0.35,
+        }]
+    },
+    options: {
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Analytics{% endblock %}
+{% block page_title %}Analytics{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card panel">
+            <div class="card-header">Hours Worked per Week</div>
+            <div class="card-body"><canvas id="weekChart" height="220"></canvas></div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card panel">
+            <div class="card-header">Monthly Productivity (hours)</div>
+            <div class="card-body"><canvas id="monthChart" height="220"></canvas></div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card panel">
+            <div class="card-header">Task Completion Rate</div>
+            <div class="card-body"><canvas id="statusChart" height="240"></canvas></div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card panel">
+            <div class="card-header">Hours per Intern</div>
+            <div class="card-body"><canvas id="internChart" height="240"></canvas></div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card panel">
+            <div class="card-header">Tasks by Category</div>
+            <div class="card-body"><canvas id="categoryChart" height="240"></canvas></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ week_labels|json_script:"week-labels" }}{{ week_data|json_script:"week-data" }}
+{{ month_labels|json_script:"month-labels" }}{{ month_data|json_script:"month-data" }}
+{{ status_labels|json_script:"status-labels" }}{{ status_data|json_script:"status-data" }}
+{{ intern_labels|json_script:"intern-labels" }}{{ intern_data|json_script:"intern-data" }}
+{{ category_labels|json_script:"category-labels" }}{{ category_data|json_script:"category-data" }}
+<script>
+const load = id => JSON.parse(document.getElementById(id).textContent);
+const blue = '#2563EB', palette = ['#2563EB', '#16A34A', '#F59E0B', '#DC2626', '#7C3AED', '#0891B2', '#DB2777', '#64748B'];
+
+new Chart(document.getElementById('weekChart'), {
+    type: 'line',
+    data: { labels: load('week-labels'), datasets: [{ label: 'Hours', data: load('week-data'),
+        borderColor: blue, backgroundColor: 'rgba(37,99,235,.1)', fill: true, tension: .35 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+});
+new Chart(document.getElementById('monthChart'), {
+    type: 'bar',
+    data: { labels: load('month-labels'), datasets: [{ label: 'Hours', data: load('month-data'),
+        backgroundColor: blue, borderRadius: 6 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+});
+new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: { labels: load('status-labels'), datasets: [{ data: load('status-data'),
+        backgroundColor: ['#F59E0B', '#2563EB', '#16A34A'] }] },
+    options: { plugins: { legend: { position: 'bottom' } } }
+});
+new Chart(document.getElementById('internChart'), {
+    type: 'bar',
+    data: { labels: load('intern-labels'), datasets: [{ label: 'Hours', data: load('intern-data'),
+        backgroundColor: blue, borderRadius: 6 }] },
+    options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+});
+new Chart(document.getElementById('categoryChart'), {
+    type: 'pie',
+    data: { labels: load('category-labels'), datasets: [{ data: load('category-data'),
+        backgroundColor: palette }] },
+    options: { plugins: { legend: { position: 'bottom' } } }
+});
+</script>
+{% endblock %}

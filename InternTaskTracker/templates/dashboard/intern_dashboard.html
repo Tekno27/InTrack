@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-clock-fill"></i></div>
+            <div class="stat-value">{{ stats.hours_today }}</div>
+            <div class="stat-label">Hours Today</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-calendar-week-fill"></i></div>
+            <div class="stat-value">{{ stats.hours_week }}</div>
+            <div class="stat-label">Weekly Hours</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon bg-secondary-subtle text-secondary"><i class="bi bi-calendar-month-fill"></i></div>
+            <div class="stat-value">{{ stats.hours_month }}</div>
+            <div class="stat-label">Monthly Hours</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-check-circle-fill"></i></div>
+            <div class="stat-value">{{ stats.completed }}</div>
+            <div class="stat-label">Completed</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon bg-warning-subtle text-warning"><i class="bi bi-hourglass-split"></i></div>
+            <div class="stat-value">{{ stats.pending }}</div>
+            <div class="stat-label">Pending</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon bg-danger-subtle text-danger"><i class="bi bi-play-circle-fill"></i></div>
+            <div class="stat-value">{{ stats.in_progress }}</div>
+            <div class="stat-label">In Progress</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card panel">
+            <div class="card-header">This Week's Hours</div>
+            <div class="card-body"><canvas id="weeklyChart" height="220"></canvas></div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card panel">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                Recent Activity
+                <a href="{% url 'task_list' %}" class="small">View all</a>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for task in recent_tasks %}
+                <a href="{% url 'task_detail' task.pk %}" class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between">
+                        <strong class="text-truncate">{{ task.title }}</strong>
+                        <span class="badge status-{{ task.status|lower }}">{{ task.get_status_display }}</span>
+                    </div>
+                    <small class="text-muted">{{ task.date }} · {{ task.duration_display }}
+                        {% if task.category %} · {{ task.category.name }}{% endif %}</small>
+                </a>
+                {% empty %}
+                <div class="list-group-item text-muted text-center py-4">
+                    No tasks yet. <a href="{% url 'task_create' %}">Log your first task</a>.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ chart_labels|json_script:"chart-labels" }}
+{{ chart_data|json_script:"chart-data" }}
+<script>
+new Chart(document.getElementById('weeklyChart'), {
+    type: 'bar',
+    data: {
+        labels: JSON.parse(document.getElementById('chart-labels').textContent),
+        datasets: [{
+            label: 'Hours',
+            data: JSON.parse(document.getElementById('chart-data').textContent),
+            backgroundColor: '#2563EB',
+            borderRadius: 6,
+        }]
+    },
+    options: {
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+    }
+});
+</script>
+{% endblock %}

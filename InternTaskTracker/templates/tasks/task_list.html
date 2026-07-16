@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Tasks{% endblock %}
+{% block page_title %}{% if user.is_supervisor %}All Tasks{% else %}My Tasks{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card panel mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small">Search</label>
+                <input type="text" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Title or description...">
+            </div>
+            <div class="col-md-2 col-6">
+                <label class="form-label small">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All</option>
+                    {% for value, label in statuses %}
+                    <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 col-6">
+                <label class="form-label small">Priority</label>
+                <select name="priority" class="form-select">
+                    <option value="">All</option>
+                    {% for value, label in priorities %}
+                    <option value="{{ value }}" {% if request.GET.priority == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 col-6">
+                <label class="form-label small">Category</label>
+                <select name="category" class="form-select">
+                    <option value="">All</option>
+                    {% for c in categories %}
+                    <option value="{{ c.pk }}" {% if request.GET.category == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% if interns %}
+            <div class="col-md-2 col-6">
+                <label class="form-label small">Intern</label>
+                <select name="intern" class="form-select">
+                    <option value="">All</option>
+                    {% for i in interns %}
+                    <option value="{{ i.pk }}" {% if request.GET.intern == i.pk|stringformat:"s" %}selected{% endif %}>{{ i.get_full_name|default:i.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-md-2 col-6">
+                <label class="form-label small">From</label>
+                <input type="date" name="date_from" value="{{ request.GET.date_from }}" class="form-control">
+            </div>
+            <div class="col-md-2 col-6">
+                <label class="form-label small">To</label>
+                <input type="date" name="date_to" value="{{ request.GET.date_to }}" class="form-control">
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-funnel"></i> Filter</button>
+                <a href="{% url 'task_list' %}" class="btn btn-outline-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <span class="text-muted small">{{ page.paginator.count }} task{{ page.paginator.count|pluralize }} · {{ total_hours }} hours total</span>
+    {% if user.is_intern %}
+    <a href="{% url 'task_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Add Task</a>
+    {% endif %}
+</div>
+
+<div class="card panel">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    {% if user.is_supervisor %}<th>Intern</th>{% endif %}
+                    <th>Task</th><th>Category</th><th>Date</th><th>Time</th>
+                    <th>Duration</th><th>Priority</th><th>Status</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for task in page %}
+            <tr>
+                {% if user.is_supervisor %}
+                <td>{{ task.intern.get_full_name|default:task.intern.username }}</td>
+                {% endif %}
+                <td><a href="{% url 'task_detail' task.pk %}">{{ task.title|truncatechars:40 }}</a></td>
+                <td>{{ task.category.name|default:"—" }}</td>
+                <td>{{ task.date }}</td>
+                <td class="text-nowrap">{{ task.start_time|time:"H:i" }}–{{ task.end_time|time:"H:i" }}</td>
+                <td>{{ task.duration_display }}</td>
+                <td><span class="badge priority-{{ task.priority|lower }}">{{ task.get_priority_display }}</span></td>
+                <td><span class="badge status-{{ task.status|lower }}">{{ task.get_status_display }}</span></td>
+                <td class="text-nowrap text-end">
+                    {% if task.intern == user %}
+                    <a href="{% url 'task_update' task.pk %}" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
+                    <a href="{% url 'task_delete' task.pk %}" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="9" class="text-center text-muted py-5">No tasks found.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if page.paginator.num_pages > 1 %}
+<nav class="mt-3">
+    <ul class="pagination justify-content-center">
+        {% if page.has_previous %}
+        <li class="page-item"><a class="page-link" href="?{% for k, v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page.previous_page_number }}">Previous</a></li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">Page {{ page.number }} of {{ page.paginator.num_pages }}</span></li>
+        {% if page.has_next %}
+        <li class="page-item"><a class="page-link" href="?{% for k, v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ page.next_page_number }}">Next</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
