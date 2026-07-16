@@ -1,130 +1,79 @@
 # InTrack — Intern Task & Time Tracker
 
-A modern web-based internship management system that lets interns record daily work and track time spent on tasks, while supervisors monitor progress through dashboards, reports, and analytics.
+A department-based internship management system where department heads onboard supervisors and interns, interns log time on tasks (and receive assigned work), supervisors monitor their teams, and everyone can chat within clear permission rules.
 
 Developed as a final internship project by **Nii Teiko Aryee** (University of Cape Coast).
 
 ---
 
-## Features
+## Roles (RBAC)
 
-- Role-based authentication (Intern / Supervisor)
-- Intern self-registration and password reset
-- Daily task logging with start/end time and auto-calculated duration
-- Task categories, priorities, statuses, attachments, and notes
-- Intern dashboard (hours today / week / month, charts, recent activity)
-- Supervisor dashboard (interns, tasks, top performers, weekly analytics)
-- Search & filtering by date, status, priority, category, and intern
-- Reports with PDF, Excel, and CSV export
-- Analytics charts (Chart.js)
-- User profile with department, phone, and profile picture
-- Optional in-app notifications
+| Role | Who creates them | What they can do |
+|------|------------------|------------------|
+| **System Admin** | Django admin | Create departments and department heads |
+| **Department Head** | System admin | Invite supervisors/interns, assign interns to supervisors, oversee department tasks/analytics, chat |
+| **Supervisor** | Department head (invite) | Assign tasks to their interns, monitor team, chat |
+| **Intern** | Department head (invite) | Log personal work, update assigned tasks, chat |
+
+Public self-registration is disabled. Invited users get an email link to verify their email and set a password.
 
 ---
 
-## Tech Stack
+## Chat rules
 
-| Layer      | Technology                          |
-|------------|-------------------------------------|
-| Backend    | Django 6, Python 3.13+              |
-| Database   | SQLite (dev) / PostgreSQL (prod)    |
-| Frontend   | HTML5, CSS3, Bootstrap 5, Chart.js  |
-| Reports    | ReportLab, OpenPyXL                 |
-| Forms      | django-crispy-forms + Bootstrap 5   |
+- Intern ↔ other interns in the **same department**
+- Intern ↔ their **assigned supervisor** and **department head**
+- Supervisors / heads ↔ any other supervisor / head (**company-wide**)
 
 ---
 
-## Project Structure
+## Task model
 
-```
-InternTaskTracker/
-├── accounts/          (handled inside tracker app)
-├── config/            # Django project settings
-├── tracker/           # Core app (models, views, urls, forms)
-├── templates/         # HTML templates
-├── static/            # CSS / JS
-├── media/             # Uploaded files
-├── manage.py
-├── requirements.txt
-└── README.md
-```
+- Interns can **log their own work** (date + start/end time → auto duration)
+- Supervisors / heads can **assign tasks** to interns they manage
+- Interns update status / log time on assigned tasks
 
 ---
 
-## Installation
+## Quick start
 
 ```bash
-# 1. Clone the repository
-git clone <repository-url>
 cd InternTaskTracker
-
-# 2. Create and activate a virtual environment
 python -m venv venv
-
-# Windows
 venv\Scripts\activate
-
-# macOS / Linux
-source venv/bin/activate
-
-# 3. Install dependencies
 pip install -r requirements.txt
-
-# 4. Run migrations
 python manage.py migrate
-
-# 5. Seed default task categories
-python manage.py seed_categories
-
-# 6. Create a supervisor (admin) account
-python manage.py createsuperuser
-# Then set role=SUPERVISOR in the Django admin, or via shell:
-#   python manage.py shell
-#   >>> from tracker.models import User
-#   >>> u = User.objects.get(username='yourname')
-#   >>> u.role = User.Roles.SUPERVISOR
-#   >>> u.save()
-
-# 7. Start the development server
+python manage.py seed_demo
 python manage.py runserver
 ```
 
 Open http://127.0.0.1:8000/
 
-Interns can self-register at `/register/`. Supervisors are created via the admin or shell.
+### Demo accounts
+
+| Username | Password | Role |
+|----------|----------|------|
+| `head` | `head123` | IT Department Head |
+| `supervisor` | `supervisor123` | IT Supervisor |
+| `intern` | `intern123` | IT Intern (assigned to supervisor) |
+| `hrhead` | `hrhead123` | HR Department Head |
+
+Invite emails print to the terminal in development (`EMAIL_BACKEND = console`).
+
+### Creating a real department head
+
+1. `python manage.py createsuperuser`
+2. In `/admin/`, create a **Department**
+3. Create a **User** with role `HEAD`, link them to that department, set a password (or leave invite flow for later)
 
 ---
 
-## Default Categories
+## Stack
 
-Development · Research · Documentation · Meeting · Training · Testing · Deployment · Other
-
----
-
-## User Roles
-
-### Intern
-Register/login · Dashboard · Create / edit / delete own tasks · Upload attachments · View stats · Export personal reports · Manage profile
-
-### Supervisor
-Login · View all interns · View every submitted task · Search / filter · Analytics · Export reports
-
----
-
-## UI Theme
-
-| Token     | Color   |
-|-----------|---------|
-| Primary   | `#2563EB` |
-| Success   | `#16A34A` |
-| Warning   | `#F59E0B` |
-| Danger    | `#DC2626` |
-| Background| `#F8FAFC` |
-
-Font: Inter
+Django 6 · Bootstrap 5 · Chart.js · ReportLab · OpenPyXL · SQLite (dev)
 
 ---
 
 ## License
 
-This project is developed for academic and portfolio purposes.
+Academic / portfolio use.

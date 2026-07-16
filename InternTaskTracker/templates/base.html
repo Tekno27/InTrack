@@ -23,26 +23,40 @@
             <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                 <i class="bi bi-grid-1x2-fill"></i> Dashboard
             </a>
+
             {% if user.is_intern %}
             <a href="{% url 'task_list' %}" class="{% if 'task' in request.resolver_match.url_name %}active{% endif %}">
                 <i class="bi bi-list-check"></i> My Tasks
             </a>
             <a href="{% url 'task_create' %}">
-                <i class="bi bi-plus-circle-fill"></i> Add Task
+                <i class="bi bi-plus-circle-fill"></i> Log Work
             </a>
-            {% else %}
+            {% elif user.is_management %}
+            {% if user.is_head %}
+            <a href="{% url 'team_list' %}" class="{% if 'team' in request.resolver_match.url_name or request.resolver_match.url_name == 'invite_user' or request.resolver_match.url_name == 'assign_intern' %}active{% endif %}">
+                <i class="bi bi-building"></i> My Team
+            </a>
+            {% endif %}
             <a href="{% url 'intern_list' %}" class="{% if request.resolver_match.url_name == 'intern_list' %}active{% endif %}">
-                <i class="bi bi-people-fill"></i> All Interns
+                <i class="bi bi-people-fill"></i> Interns
             </a>
             <a href="{% url 'task_list' %}" class="{% if 'task' in request.resolver_match.url_name %}active{% endif %}">
-                <i class="bi bi-list-check"></i> All Tasks
+                <i class="bi bi-list-check"></i> Tasks
+            </a>
+            <a href="{% url 'task_create' %}">
+                <i class="bi bi-plus-circle-fill"></i> Assign Task
             </a>
             <a href="{% url 'analytics' %}" class="{% if request.resolver_match.url_name == 'analytics' %}active{% endif %}">
                 <i class="bi bi-bar-chart-fill"></i> Analytics
             </a>
             {% endif %}
+
             <a href="{% url 'reports' %}" class="{% if 'report' in request.resolver_match.url_name %}active{% endif %}">
                 <i class="bi bi-file-earmark-text-fill"></i> Reports
+            </a>
+            <a href="{% url 'chat_inbox' %}" class="{% if 'chat' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="bi bi-chat-dots-fill"></i> Chat
+                {% if unread_messages %}<span class="badge bg-danger ms-auto">{{ unread_messages }}</span>{% endif %}
             </a>
             <a href="{% url 'profile' %}" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
                 <i class="bi bi-person-fill"></i> Profile
@@ -75,7 +89,9 @@
                     {% endif %}
                     <span class="d-none d-md-inline">
                         {{ user.get_full_name|default:user.username }}
-                        <small class="text-muted d-block">{{ user.get_role_display }}</small>
+                        <small class="text-muted d-block">
+                            {{ user.get_role_display }}{% if user.department %} · {{ user.department.name }}{% endif %}
+                        </small>
                     </span>
                 </a>
             </div>

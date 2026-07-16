@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Chat{% endblock %}
+{% block page_title %}Messages{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="card panel mb-3">
+            <div class="card-header">Start a conversation</div>
+            <div class="card-body">
+                <form method="post" action="{% url 'chat_start' %}">
+                    {% csrf_token %}
+                    {{ start_form|crispy }}
+                    <button type="submit" class="btn btn-primary btn-sm w-100">Open Chat</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card panel">
+            <div class="card-header">Inbox</div>
+            <div class="list-group list-group-flush">
+                {% for row in rows %}
+                <a href="{% url 'chat_thread' row.conversation.pk %}" class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>{{ row.other.get_full_name|default:row.other.username }}</strong>
+                            <small class="text-muted d-block">{{ row.other.get_role_display }}{% if row.other.department %} · {{ row.other.department.name }}{% endif %}</small>
+                            {% if row.last %}
+                            <div class="text-muted small mt-1 text-truncate" style="max-width:420px">
+                                {% if row.last.sender == request.user %}You: {% endif %}{{ row.last.body }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="text-end">
+                            {% if row.last %}<small class="text-muted">{{ row.last.created_at|timesince }} ago</small>{% endif %}
+                            {% if row.unread %}<div><span class="badge bg-danger">{{ row.unread }}</span></div>{% endif %}
+                        </div>
+                    </div>
+                </a>
+                {% empty %}
+                <div class="list-group-item text-center text-muted py-5">
+                    No conversations yet. Start one from the left.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

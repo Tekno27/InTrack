@@ -17,7 +17,7 @@
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead>
-                <tr><th>Intern</th><th>Email</th><th>Department</th><th>Tasks</th><th>Completed</th><th>Hours</th><th></th></tr>
+                <tr><th>Intern</th><th>Email</th><th>Department</th><th>Supervisor</th><th>Tasks</th><th>Completed</th><th>Hours</th><th></th></tr>
             </thead>
             <tbody>
             {% for row in rows %}
@@ -33,7 +33,8 @@
                     </div>
                 </td>
                 <td>{{ row.user.email|default:"—" }}</td>
-                <td>{{ row.user.profile.department|default:"—" }}</td>
+                <td>{{ row.user.department.name|default:"—" }}</td>
+                <td>{{ row.user.supervisor|default:"—" }}</td>
                 <td>{{ row.task_count }}</td>
                 <td>{{ row.completed_count }}</td>
                 <td>{{ row.hours }} h</td>
@@ -42,7 +43,7 @@
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="7" class="text-center text-muted py-5">No interns found.</td></tr>
+            <tr><td colspan="8" class="text-center text-muted py-5">No interns found.</td></tr>
             {% endfor %}
             </tbody>
         </table>

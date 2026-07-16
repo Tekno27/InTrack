@@ -229,3 +229,40 @@ body {
     .sidebar.show { transform: translateX(0); }
     .main-area { margin-left: 0; }
 }
+
+/* ---------- chat ---------- */
+
+.chat-panel { display: flex; flex-direction: column; min-height: 70vh; }
+.chat-body {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 55vh;
+    background: #F8FAFC;
+    display: flex;
+    flex-direction: column;
+    gap: .65rem;
+    padding: 1rem;
+}
+.chat-bubble {
+    max-width: 75%;
+    padding: .65rem .85rem;
+    border-radius: .85rem;
+}
+.chat-bubble.mine {
+    align-self: flex-end;
+    background: var(--primary);
+    color: #fff;
+    border-bottom-right-radius: .25rem;
+}
+.chat-bubble.theirs {
+    align-self: flex-start;
+    background: #fff;
+    border: 1px solid #E2E8F0;
+    border-bottom-left-radius: .25rem;
+}
+.chat-meta {
+    font-size: .7rem;
+    opacity: .75;
+    margin-top: .25rem;
+}
+.sidebar-nav a .badge { font-size: .65rem; }

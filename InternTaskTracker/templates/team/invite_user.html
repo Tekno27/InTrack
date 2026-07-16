@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Invite Member{% endblock %}
+{% block page_title %}Invite Supervisor / Intern{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card panel">
+            <div class="card-body">
+                <p class="text-muted">
+                    Create an account for your department. The person will receive an email to verify their address and set a password.
+                    Interns must be assigned to a supervisor.
+                </p>
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-envelope"></i> Create &amp; Send Invite</button>
+                        <a href="{% url 'team_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

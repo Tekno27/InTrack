@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
-{% block page_title %}Supervisor Dashboard{% endblock %}
+{% block page_title %}{{ page_heading|default:"Supervisor Dashboard" }}{% endblock %}
 
 {% block content %}
 <div class="row g-3 mb-4">
@@ -37,7 +37,7 @@
 <div class="row g-3">
     <div class="col-lg-7">
         <div class="card panel mb-3">
-            <div class="card-header">This Week's Hours (all interns)</div>
+            <div class="card-header">This Week's Hours ({% if scope == "department" %}department{% else %}your team{% endif %})</div>
             <div class="card-body"><canvas id="weeklyChart" height="200"></canvas></div>
         </div>
         <div class="card panel">

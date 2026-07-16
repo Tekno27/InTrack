@@ -5,9 +5,9 @@ from . import views
 
 urlpatterns = [
     # Auth
-    path("register/", views.register, name="register"),
     path("login/", auth_views.LoginView.as_view(), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
+    path("invite/<str:token>/", views.accept_invite, name="accept_invite"),
     path("password-reset/",
          auth_views.PasswordResetView.as_view(),
          name="password_reset"),
@@ -31,7 +31,13 @@ urlpatterns = [
     path("tasks/<int:pk>/edit/", views.task_update, name="task_update"),
     path("tasks/<int:pk>/delete/", views.task_delete, name="task_delete"),
 
-    # Supervisor
+    # Team (department head)
+    path("team/", views.team_list, name="team_list"),
+    path("team/invite/", views.invite_user, name="invite_user"),
+    path("team/assign/", views.assign_intern, name="assign_intern"),
+    path("team/<int:pk>/resend-invite/", views.resend_invite, name="resend_invite"),
+
+    # Supervisor / head
     path("interns/", views.intern_list, name="intern_list"),
     path("analytics/", views.analytics, name="analytics"),
 
@@ -40,6 +46,11 @@ urlpatterns = [
     path("reports/export/csv/", views.export_csv, name="export_csv"),
     path("reports/export/excel/", views.export_excel, name="export_excel"),
     path("reports/export/pdf/", views.export_pdf, name="export_pdf"),
+
+    # Chat
+    path("chat/", views.chat_inbox, name="chat_inbox"),
+    path("chat/start/", views.chat_start, name="chat_start"),
+    path("chat/<int:pk>/", views.chat_thread, name="chat_thread"),
 
     # Profile & notifications
     path("profile/", views.profile, name="profile"),

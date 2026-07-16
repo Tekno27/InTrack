@@ -1,0 +1,17 @@
+{% extends "auth_base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Accept Invite{% endblock %}
+
+{% block content %}
+<h4 class="mb-2">Verify &amp; set password</h4>
+<p class="text-muted small">
+    Welcome, <strong>{{ invite_user.get_full_name|default:invite_user.username }}</strong>
+    ({{ invite_user.get_role_display }}{% if invite_user.department %} · {{ invite_user.department.name }}{% endif %}).
+    Confirm your email by choosing a password.
+</p>
+<form method="post" novalidate>
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button type="submit" class="btn btn-primary w-100 mt-2">Activate account</button>
+</form>
+{% endblock %}

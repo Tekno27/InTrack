@@ -71,7 +71,7 @@
             <thead>
                 <tr>
                     <th>Date</th>
-                    {% if user.is_supervisor %}<th>Intern</th>{% endif %}
+                    {% if user.is_management %}<th>Intern</th>{% endif %}
                     <th>Task</th><th>Category</th><th>Time</th><th>Hours</th><th>Priority</th><th>Status</th>
                 </tr>
             </thead>
@@ -79,12 +79,16 @@
             {% for task in tasks %}
             <tr>
                 <td>{{ task.date }}</td>
-                {% if user.is_supervisor %}
+                {% if user.is_management %}
                 <td>{{ task.intern.get_full_name|default:task.intern.username }}</td>
                 {% endif %}
                 <td><a href="{% url 'task_detail' task.pk %}">{{ task.title|truncatechars:40 }}</a></td>
                 <td>{{ task.category.name|default:"—" }}</td>
-                <td class="text-nowrap">{{ task.start_time|time:"H:i" }}–{{ task.end_time|time:"H:i" }}</td>
+                <td class="text-nowrap">
+                    {% if task.start_time and task.end_time %}
+                        {{ task.start_time|time:"H:i" }}–{{ task.end_time|time:"H:i" }}
+                    {% else %}—{% endif %}
+                </td>
                 <td>{{ task.duration_hours }}</td>
                 <td><span class="badge priority-{{ task.priority|lower }}">{{ task.get_priority_display }}</span></td>
                 <td><span class="badge status-{{ task.status|lower }}">{{ task.get_status_display }}</span></td>
