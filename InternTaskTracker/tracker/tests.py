@@ -252,3 +252,64 @@ class AttachmentAccessTests(TestCase):
         self.client.login(username="outsider", password="pass12345")
         response = self.client.get(reverse("task_attachment", args=[self.task.pk]))
         self.assertEqual(response.status_code, 403)
+
+
+class NotificationAndChatPollTests(TestCase):
+    def setUp(self):
+        self.it = Department.objects.create(name="IT")
+        self.supervisor = User.objects.create_user(
+            username="sup", password="pass12345", role=User.Roles.SUPERVISOR,
+            department=self.it, email="sup@test.com", email_verified=True)
+        self.intern = User.objects.create_user(
+            username="intern", password="pass12345", role=User.Roles.INTERN,
+            department=self.it, supervisor=self.supervisor,
+            email="intern@test.com", email_verified=True)
+
+    def test_notifications_list_does_not_mark_all_read(self):
+        from tracker.models import Notification
+        n1 = Notification.objects.create(
+            user=self.intern, title="One", message="a", link="/dashboard/")
+        n2 = Notification.objects.create(
+            user=self.intern, title="Two", message="b", link="/tasks/")
+        self.client.login(username="intern", password="pass12345")
+        response = self.client.get(reverse("notifications"))
+        self.assertEqual(response.status_code, 200)
+        n1.refresh_from_db()
+        n2.refresh_from_db()
+        self.assertFalse(n1.is_read)
+        self.assertFalse(n2.is_read)
+
+    def test_notification_open_marks_one_read(self):
+        from tracker.models import Notification
+        item = Notification.objects.create(
+            user=self.intern, title="Review", message="changes", link="/dashboard/")
+        self.client.login(username="intern", password="pass12345")
+        response = self.client.get(reverse("notification_open", args=[item.pk]))
+        self.assertEqual(response.status_code, 302)
+        item.refresh_from_db()
+        self.assertTrue(item.is_read)
+
+    def test_chat_poll_returns_new_messages(self):
+        conv, _ = Conversation.between(self.intern, self.supervisor)
+        first = Message.objects.create(conversation=conv, sender=self.intern, body="Hi")
+        self.client.login(username="supervisor", password="pass12345")
+        # supervisor username is "sup"
+        self.client.logout()
+        self.client.login(username="sup", password="pass12345")
+        response = self.client.get(
+            reverse("chat_poll", args=[conv.pk]),
+            {"after": 0},
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["messages"]), 1)
+        self.assertEqual(data["messages"][0]["id"], first.pk)
+        self.assertFalse(data["messages"][0]["mine"])
+
+        Message.objects.create(conversation=conv, sender=self.intern, body="Again")
+        response = self.client.get(
+            reverse("chat_poll", args=[conv.pk]),
+            {"after": first.pk},
+        )
+        self.assertEqual(len(response.json()["messages"]), 1)
+        self.assertEqual(response.json()["messages"][0]["body"], "Again")

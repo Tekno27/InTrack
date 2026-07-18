@@ -7,10 +7,10 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.paginator import Paginator
 from django.db.models import Count, DurationField, Q, Sum, Value
 from django.db.models.functions import Coalesce
-from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from .forms import (
     AcceptInviteForm,
@@ -890,13 +890,53 @@ def chat_thread(request, pk):
 
     conversation.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
     messages_qs = conversation.messages.select_related("sender")
+    last_id = messages_qs.last().pk if messages_qs.exists() else 0
 
     return render(request, "chat/thread.html", {
         "conversation": conversation,
         "other": other,
         "chat_messages": messages_qs,
         "form": form,
+        "last_message_id": last_id,
     })
+
+
+@login_required
+@require_GET
+def chat_poll(request, pk):
+    """Return new messages after ?after=<id> for lightweight live updates."""
+    conversation = get_object_or_404(
+        Conversation.objects.prefetch_related("participants"), pk=pk)
+    if not conversation.participants.filter(pk=request.user.pk).exists():
+        return HttpResponseForbidden("Not your conversation.")
+
+    other = conversation.other_participant(request.user)
+    if other and not can_message(request.user, other):
+        return HttpResponseForbidden("You are not allowed to message this user.")
+
+    try:
+        after_id = int(request.GET.get("after") or 0)
+    except (TypeError, ValueError):
+        after_id = 0
+
+    new_msgs = (
+        conversation.messages.filter(pk__gt=after_id)
+        .select_related("sender")
+        .order_by("created_at")
+    )
+    conversation.messages.filter(
+        is_read=False, pk__gt=after_id,
+    ).exclude(sender=request.user).update(is_read=True)
+
+    payload = []
+    for msg in new_msgs:
+        payload.append({
+            "id": msg.pk,
+            "body": msg.body,
+            "mine": msg.sender_id == request.user.pk,
+            "created": timezone.localtime(msg.created_at).strftime("%b %d, %H:%M"),
+        })
+    return JsonResponse({"messages": payload})
 
 
 # ---------------------------------------------------------------- profile / notifications
@@ -924,5 +964,16 @@ def profile(request):
 @login_required
 def notifications(request):
     items = request.user.notifications.all()[:50]
-    request.user.notifications.filter(is_read=False).update(is_read=True)
     return render(request, "notifications/notification_list.html", {"items": items})
+
+
+@login_required
+def notification_open(request, pk):
+    """Mark a single notification read, then follow its link."""
+    item = get_object_or_404(Notification, pk=pk, user=request.user)
+    if not item.is_read:
+        item.is_read = True
+        item.save(update_fields=["is_read"])
+    if item.link:
+        return redirect(item.link)
+    return redirect("notifications")

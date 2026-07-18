@@ -1,0 +1,14 @@
+{% if count %}
+<div class="active-filters mb-2">
+    <span class="filter-count-pill">
+        <i class="bi bi-funnel-fill"></i>
+        {{ count }} filter{{ count|pluralize }} active
+    </span>
+    {% for chip in chips %}
+    <span class="filter-chip">
+        <strong>{{ chip.label }}:</strong> {{ chip.value }}
+    </span>
+    {% endfor %}
+    <a href="{% url clear_url_name %}" class="filter-clear-link">Clear all</a>
+</div>
+{% endif %}

@@ -40,8 +40,12 @@
                     </div>
                 </a>
                 {% empty %}
-                <div class="list-group-item text-center text-muted py-5">
-                    No conversations yet. Start one from the left.
+                <div class="list-group-item text-center py-5">
+                    <div class="empty-state">
+                        <span class="empty-icon"><i class="bi bi-chat-dots"></i></span>
+                        <h6>No conversations yet</h6>
+                        <p>Pick someone on the left to start messaging your team.</p>
+                    </div>
                 </div>
                 {% endfor %}
             </div>

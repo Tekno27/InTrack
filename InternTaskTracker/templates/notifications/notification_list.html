@@ -8,18 +8,23 @@
         <div class="card panel">
             <div class="list-group list-group-flush">
                 {% for item in items %}
-                <div class="list-group-item {% if not item.is_read %}bg-light{% endif %}">
-                    <div class="d-flex justify-content-between">
+                <a href="{% url 'notification_open' item.pk %}"
+                   class="list-group-item list-group-item-action {% if not item.is_read %}notif-unread{% endif %}">
+                    <div class="d-flex justify-content-between gap-2">
                         <strong>{{ item.title }}</strong>
-                        <small class="text-muted">{{ item.created_at|timesince }} ago</small>
+                        <small class="text-muted text-nowrap">{{ item.created_at|timesince }} ago</small>
                     </div>
                     {% if item.message %}<div class="text-muted small">{{ item.message }}</div>{% endif %}
-                    {% if item.link %}<a href="{{ item.link }}" class="small">View</a>{% endif %}
-                </div>
+                    {% if not item.is_read %}<span class="badge bg-primary-subtle text-primary mt-1">Unread</span>{% endif %}
+                </a>
                 {% empty %}
-                <div class="list-group-item text-center text-muted py-5">
-                    <i class="bi bi-bell-slash display-6 d-block mb-2"></i>
-                    No notifications yet.
+                <div class="list-group-item text-center py-5">
+                    <div class="empty-state">
+                        <span class="empty-icon"><i class="bi bi-bell-slash"></i></span>
+                        <h6>No notifications yet</h6>
+                        <p>You'll see task reviews, assignments, and messages here.</p>
+                        <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-primary">Back to dashboard</a>
+                    </div>
                 </div>
                 {% endfor %}
             </div>

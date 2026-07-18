@@ -238,6 +238,41 @@ class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = ("phone", "profile_picture")
+        widgets = {
+            "profile_picture": forms.ClearableFileInput(attrs={"class": "form-control", "accept": "image/*"}),
+        }
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        uploaded = self.cleaned_data.get("profile_picture")
+        if "profile_picture" in self.changed_data and uploaded:
+            from io import BytesIO
+
+            from django.core.files.base import ContentFile
+            from PIL import Image
+
+            uploaded.seek(0)
+            img = Image.open(uploaded)
+            img = img.convert("RGB")
+            width, height = img.size
+            side = min(width, height)
+            left = (width - side) // 2
+            top = (height - side) // 2
+            img = img.crop((left, top, left + side, top + side))
+            img = img.resize((400, 400), Image.Resampling.LANCZOS)
+            buffer = BytesIO()
+            img.save(buffer, format="JPEG", quality=90)
+            name = getattr(uploaded, "name", "avatar.jpg")
+            stem = name.rsplit(".", 1)[0] if "." in name else name
+            stem = stem.rsplit("/", 1)[-1]
+            instance.profile_picture.save(
+                f"{stem}.jpg",
+                ContentFile(buffer.getvalue()),
+                save=False,
+            )
+        if commit:
+            instance.save()
+        return instance
 
 
 class MessageForm(forms.Form):

@@ -71,8 +71,10 @@ urlpatterns = [
     path("chat/", views.chat_inbox, name="chat_inbox"),
     path("chat/start/", views.chat_start, name="chat_start"),
     path("chat/<int:pk>/", views.chat_thread, name="chat_thread"),
+    path("chat/<int:pk>/poll/", views.chat_poll, name="chat_poll"),
 
     # Profile & notifications
     path("profile/", views.profile, name="profile"),
     path("notifications/", views.notifications, name="notifications"),
+    path("notifications/<int:pk>/open/", views.notification_open, name="notification_open"),
 ]

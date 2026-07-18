@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tracker_extras %}
 {% block title %}Tasks{% endblock %}
 {% block page_title %}{% if user.is_management %}Tasks{% else %}My Tasks{% endif %}{% endblock %}
 
@@ -74,6 +75,8 @@
     </div>
 </div>
 
+{% active_filters %}
+
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
     <span class="text-muted small">
         <strong class="text-body">{{ page.paginator.count }}</strong> task{{ page.paginator.count|pluralize }}
@@ -104,7 +107,7 @@
                 {% endif %}
                 <td>
                     <a href="{% url 'task_detail' task.pk %}">{{ task.title|truncatechars:40 }}</a>
-                    {% if task.is_assigned %}<span class="badge bg-info-subtle text-info ms-1">Assigned</span>{% endif %}
+                    {% assigned_badge task %}
                 </td>
                 <td>{{ task.category.name|default:"—" }}</td>
                 <td>{{ task.date }}</td>
@@ -114,8 +117,8 @@
                     {% else %}—{% endif %}
                 </td>
                 <td>{{ task.duration_display }}</td>
-                <td><span class="badge priority-{{ task.priority|lower }}">{{ task.get_priority_display }}</span></td>
-                <td><span class="badge status-{{ task.status|lower }}">{{ task.get_status_display }}</span></td>
+                <td>{% priority_badge task %}</td>
+                <td>{% status_badge task %}</td>
                 <td class="text-nowrap text-end">
                     <a href="{% url 'task_detail' task.pk %}" class="btn btn-sm btn-outline-primary" title="View"><i class="bi bi-eye"></i></a>
                 </td>

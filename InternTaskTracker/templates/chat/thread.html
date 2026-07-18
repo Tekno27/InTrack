@@ -14,14 +14,16 @@
                 </div>
                 <a href="{% url 'chat_inbox' %}" class="btn btn-sm btn-outline-secondary">Inbox</a>
             </div>
-            <div class="card-body chat-body" id="chatBody">
+            <div class="card-body chat-body" id="chatBody"
+                 data-poll-url="{% url 'chat_poll' conversation.pk %}"
+                 data-last-id="{{ last_message_id }}">
                 {% for msg in chat_messages %}
-                <div class="chat-bubble {% if msg.sender == request.user %}mine{% else %}theirs{% endif %}">
+                <div class="chat-bubble {% if msg.sender == request.user %}mine{% else %}theirs{% endif %}" data-msg-id="{{ msg.pk }}">
                     <div class="chat-text">{{ msg.body|linebreaksbr }}</div>
                     <div class="chat-meta">{{ msg.created_at|date:"M j, H:i" }}</div>
                 </div>
                 {% empty %}
-                <div class="text-center text-muted py-4">No messages yet. Say hello!</div>
+                <div class="text-center text-muted py-4" id="chatEmpty">No messages yet. Say hello!</div>
                 {% endfor %}
             </div>
             <div class="card-footer">
@@ -38,7 +40,50 @@
 
 {% block scripts %}
 <script>
-const body = document.getElementById('chatBody');
-if (body) body.scrollTop = body.scrollHeight;
+(function () {
+    const body = document.getElementById('chatBody');
+    if (!body) return;
+    body.scrollTop = body.scrollHeight;
+
+    const pollUrl = body.dataset.pollUrl;
+    let lastId = parseInt(body.dataset.lastId || '0', 10);
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML.replace(/\n/g, '<br>');
+    }
+
+    function appendMessage(msg) {
+        document.getElementById('chatEmpty')?.remove();
+        if (body.querySelector(`[data-msg-id="${msg.id}"]`)) return;
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble ' + (msg.mine ? 'mine' : 'theirs');
+        bubble.dataset.msgId = msg.id;
+        bubble.innerHTML =
+            '<div class="chat-text">' + escapeHtml(msg.body) + '</div>' +
+            '<div class="chat-meta">' + escapeHtml(msg.created) + '</div>';
+        body.appendChild(bubble);
+        body.scrollTop = body.scrollHeight;
+        lastId = Math.max(lastId, msg.id);
+    }
+
+    async function poll() {
+        try {
+            const res = await fetch(pollUrl + '?after=' + lastId, {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin',
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            (data.messages || []).forEach(appendMessage);
+        } catch (e) { /* ignore transient network errors */ }
+    }
+
+    setInterval(poll, 4000);
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) poll();
+    });
+})();
 </script>
 {% endblock %}

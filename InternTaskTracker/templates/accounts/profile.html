@@ -9,9 +9,9 @@
         <div class="card panel text-center mb-3">
             <div class="card-body">
                 {% if user.profile.profile_picture %}
-                <img src="{{ user.profile.profile_picture.url }}" class="avatar avatar-xl mb-3" alt="Profile picture">
+                <img src="{{ user.profile.profile_picture.url }}" class="avatar avatar-xl mb-3" id="profileAvatarDisplay" alt="Profile picture">
                 {% else %}
-                <span class="avatar avatar-xl avatar-initials mb-3">{{ user.first_name|first|default:user.username|first|upper }}</span>
+                <span class="avatar avatar-xl avatar-initials mb-3" id="profileAvatarDisplay">{{ user.first_name|first|default:user.username|first|upper }}</span>
                 {% endif %}
                 <h5 class="mb-0">{{ user.get_full_name|default:user.username }}</h5>
                 <p class="text-muted mb-1">{{ user.get_role_display }}</p>
@@ -36,7 +36,21 @@
                 <form method="post" enctype="multipart/form-data" novalidate>
                     {% csrf_token %}
                     {{ user_form|crispy }}
-                    {{ profile_form|crispy }}
+                    {{ profile_form.phone|as_crispy_field }}
+                    <div class="mb-3">
+                        <label class="form-label" for="id_profile_picture">Profile picture</label>
+                        {{ profile_form.profile_picture }}
+                        {% if profile_form.profile_picture.errors %}
+                        <div class="invalid-feedback d-block">{{ profile_form.profile_picture.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">Photos are center-cropped to a square so they fit the circular avatar.</div>
+                        <div class="avatar-preview-wrap mt-3 d-none" id="avatarPreviewWrap">
+                            <div class="avatar-preview-mask">
+                                <img src="" alt="Preview" id="avatarPreviewImg">
+                            </div>
+                            <small class="text-muted d-block mt-2">Preview (how it will appear)</small>
+                        </div>
+                    </div>
                     <button type="submit" class="btn btn-primary mt-2"><i class="bi bi-check-lg"></i> Save Changes</button>
                     <a href="{% url 'password_change' %}" class="btn btn-outline-secondary mt-2"><i class="bi bi-key"></i> Change Password</a>
                 </form>
@@ -44,4 +58,40 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const input = document.getElementById('id_profile_picture');
+    const wrap = document.getElementById('avatarPreviewWrap');
+    const preview = document.getElementById('avatarPreviewImg');
+    if (!input || !wrap || !preview) return;
+
+    input.addEventListener('change', function () {
+        const file = input.files && input.files[0];
+        if (!file || !file.type.startsWith('image/')) {
+            wrap.classList.add('d-none');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            preview.src = e.target.result;
+            wrap.classList.remove('d-none');
+            const display = document.getElementById('profileAvatarDisplay');
+            if (display && display.tagName === 'IMG') {
+                display.src = e.target.result;
+            } else if (display) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = 'avatar avatar-xl mb-3';
+                img.id = 'profileAvatarDisplay';
+                img.alt = 'Profile picture';
+                display.replaceWith(img);
+            }
+        };
+        reader.readAsDataURL(file);
+    });
+})();
+</script>
 {% endblock %}

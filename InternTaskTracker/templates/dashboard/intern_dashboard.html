@@ -1,49 +1,68 @@
 {% extends "base.html" %}
+{% load tracker_extras %}
 {% block title %}Dashboard{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
+{# Status first (prospective), hours second (retrospective) #}
+<div class="row g-3 mb-3">
+    <div class="col-6 col-lg-3">
+        <a href="{% url 'task_list' %}?status=CHANGES_REQUESTED" class="stat-card stat-card-link {% if stats.changes_requested %}stat-card-alert{% endif %}">
+            <div class="stat-icon bg-warning-subtle text-warning"><i class="bi bi-arrow-counterclockwise"></i></div>
+            <div class="stat-value">{{ stats.changes_requested }}</div>
+            <div class="stat-label">Changes Requested</div>
+        </a>
+    </div>
+    <div class="col-6 col-lg-3">
+        <a href="{% url 'task_list' %}?status=PENDING" class="stat-card stat-card-link">
+            <div class="stat-icon bg-secondary-subtle text-secondary"><i class="bi bi-pause-circle-fill"></i></div>
+            <div class="stat-value">{{ stats.pending }}</div>
+            <div class="stat-label">Pending</div>
+        </a>
+    </div>
+    <div class="col-6 col-lg-3">
+        <a href="{% url 'task_list' %}?status=IN_PROGRESS" class="stat-card stat-card-link">
+            <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-play-circle-fill"></i></div>
+            <div class="stat-value">{{ stats.in_progress }}</div>
+            <div class="stat-label">In Progress</div>
+        </a>
+    </div>
+    <div class="col-6 col-lg-3">
+        <a href="{% url 'task_list' %}?status=SUBMITTED" class="stat-card stat-card-link">
+            <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-hourglass-split"></i></div>
+            <div class="stat-value">{{ stats.submitted }}</div>
+            <div class="stat-label">Awaiting Review</div>
+        </a>
+    </div>
+</div>
+
 <div class="row g-3 mb-4">
-    <div class="col-6 col-lg-2">
+    <div class="col-6 col-lg-3">
+        <a href="{% url 'task_list' %}?status=APPROVED" class="stat-card stat-card-link">
+            <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-patch-check-fill"></i></div>
+            <div class="stat-value">{{ stats.completed }}</div>
+            <div class="stat-label">Approved</div>
+        </a>
+    </div>
+    <div class="col-6 col-lg-3">
         <div class="stat-card">
             <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-clock-fill"></i></div>
             <div class="stat-value">{{ stats.hours_today }}</div>
             <div class="stat-label">Hours Today</div>
         </div>
     </div>
-    <div class="col-6 col-lg-2">
+    <div class="col-6 col-lg-3">
         <div class="stat-card">
             <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-calendar-week-fill"></i></div>
             <div class="stat-value">{{ stats.hours_week }}</div>
             <div class="stat-label">Weekly Hours</div>
         </div>
     </div>
-    <div class="col-6 col-lg-2">
+    <div class="col-6 col-lg-3">
         <div class="stat-card">
             <div class="stat-icon bg-secondary-subtle text-secondary"><i class="bi bi-calendar-month-fill"></i></div>
             <div class="stat-value">{{ stats.hours_month }}</div>
             <div class="stat-label">Monthly Hours</div>
-        </div>
-    </div>
-    <div class="col-6 col-lg-2">
-        <div class="stat-card">
-            <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-check-circle-fill"></i></div>
-            <div class="stat-value">{{ stats.completed }}</div>
-            <div class="stat-label">Approved</div>
-        </div>
-    </div>
-    <div class="col-6 col-lg-2">
-        <div class="stat-card">
-            <div class="stat-icon bg-warning-subtle text-warning"><i class="bi bi-hourglass-split"></i></div>
-            <div class="stat-value">{{ stats.pending }}</div>
-            <div class="stat-label">Pending</div>
-        </div>
-    </div>
-    <div class="col-6 col-lg-2">
-        <div class="stat-card">
-            <div class="stat-icon bg-danger-subtle text-danger"><i class="bi bi-play-circle-fill"></i></div>
-            <div class="stat-value">{{ stats.in_progress }}</div>
-            <div class="stat-label">In Progress</div>
         </div>
     </div>
 </div>
@@ -64,16 +83,21 @@
             <div class="list-group list-group-flush">
                 {% for task in recent_tasks %}
                 <a href="{% url 'task_detail' task.pk %}" class="list-group-item list-group-item-action">
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between gap-2">
                         <strong class="text-truncate">{{ task.title }}</strong>
-                        <span class="badge status-{{ task.status|lower }}">{{ task.get_status_display }}</span>
+                        {% status_badge task %}
                     </div>
                     <small class="text-muted">{{ task.date }} · {{ task.duration_display }}
                         {% if task.category %} · {{ task.category.name }}{% endif %}</small>
                 </a>
                 {% empty %}
-                <div class="list-group-item text-muted text-center py-4">
-                    No tasks yet. <a href="{% url 'task_create' %}">Log your first task</a>.
+                <div class="list-group-item text-center py-4">
+                    <div class="empty-state">
+                        <span class="empty-icon"><i class="bi bi-clipboard-plus"></i></span>
+                        <h6>No tasks yet</h6>
+                        <p>Log your first day of work to get started.</p>
+                        <a href="{% url 'task_create' %}" class="btn btn-sm btn-primary">Log Work</a>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
