@@ -68,6 +68,14 @@ def notify(user, title, message="", link=""):
     Notification.objects.create(user=user, title=title, message=message, link=link)
 
 
+# ---------------------------------------------------------------- public landing
+
+def landing(request):
+    if request.user.is_authenticated:
+        return redirect("dashboard")
+    return render(request, "landing.html")
+
+
 # ---------------------------------------------------------------- auth / invites
 
 def accept_invite(request, token):

@@ -32,8 +32,11 @@ urlpatterns = [
          auth_views.PasswordResetCompleteView.as_view(),
          name="password_reset_complete"),
 
-    # Dashboard
-    path("", views.dashboard, name="dashboard"),
+    # Public landing
+    path("", views.landing, name="landing"),
+
+    # Dashboard (authenticated app home)
+    path("dashboard/", views.dashboard, name="dashboard"),
 
     # Tasks
     path("tasks/", views.task_list, name="task_list"),

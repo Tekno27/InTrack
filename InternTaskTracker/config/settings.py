@@ -78,7 +78,7 @@ AUTH_USER_MODEL = 'tracker.User'
 
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
-LOGOUT_REDIRECT_URL = 'login'
+LOGOUT_REDIRECT_URL = 'landing'
 
 
 AUTH_PASSWORD_VALIDATORS = [

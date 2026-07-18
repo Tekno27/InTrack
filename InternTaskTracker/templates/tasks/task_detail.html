@@ -4,6 +4,32 @@
 {% block page_title %}Task Details{% endblock %}
 
 {% block content %}
+{% if task.status == "SUBMITTED" %}
+<div class="workflow-banner workflow-submitted">
+    <i class="bi bi-hourglass-split"></i>
+    <div>
+        <strong>Awaiting review</strong>
+        <span>This task has been submitted and is locked until a supervisor reviews it.</span>
+    </div>
+</div>
+{% elif task.status == "CHANGES_REQUESTED" %}
+<div class="workflow-banner workflow-changes">
+    <i class="bi bi-arrow-counterclockwise"></i>
+    <div>
+        <strong>Changes requested</strong>
+        <span>Review the latest feedback, update the task, then submit it again.</span>
+    </div>
+</div>
+{% elif task.status == "APPROVED" %}
+<div class="workflow-banner workflow-approved">
+    <i class="bi bi-patch-check-fill"></i>
+    <div>
+        <strong>Approved</strong>
+        <span>This work has been reviewed and approved.</span>
+    </div>
+</div>
+{% endif %}
+
 <div class="row g-3">
     <div class="col-lg-8">
         <div class="card panel">
@@ -66,9 +92,10 @@
                 <a href="{% url 'task_delete' task.pk %}" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> Delete</a>
                 {% endif %}
                 {% if can_submit %}
-                <form method="post" action="{% url 'task_submit' task.pk %}" class="d-inline">
+                <form method="post" action="{% url 'task_submit' task.pk %}" class="d-inline"
+                      data-confirm="Submit this task for review? You won't be able to edit it while it is being reviewed.">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-success btn-sm">
+                    <button type="submit" class="btn btn-success btn-sm" data-submitting-text="Submitting…">
                         <i class="bi bi-send-check"></i> Submit for Review
                     </button>
                 </form>
@@ -78,23 +105,34 @@
 
         {% if can_review and review_form %}
         <div class="card panel mt-3 border-primary">
-            <div class="card-header">Review this task</div>
+            <div class="card-header d-flex align-items-center gap-2">
+                <span class="form-heading-icon"><i class="bi bi-clipboard-check"></i></span>
+                <div>
+                    <div>Review this task</div>
+                    <small class="text-muted fw-normal">Approve the work or return it with clear feedback.</small>
+                </div>
+            </div>
             <div class="card-body">
-                <form method="post" action="{% url 'task_review' task.pk %}">
+                <form method="post" action="{% url 'task_review' task.pk %}" id="reviewForm">
                     {% csrf_token %}
-                    <div class="mb-3">
+                    <div class="review-options mb-3">
                         {% for radio in review_form.action %}
-                        <div class="form-check">{{ radio }}</div>
+                        <div class="review-option">{{ radio }}</div>
                         {% endfor %}
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Comment</label>
+                    <div class="mb-3" id="reviewCommentGroup">
+                        <label class="form-label" for="{{ review_form.comment.id_for_label }}">
+                            Comment <span class="text-danger d-none" id="commentRequired">*</span>
+                        </label>
                         {{ review_form.comment }}
+                        <div class="form-text">Required when requesting changes; optional when approving.</div>
                         {% if review_form.comment.errors %}
                         <div class="text-danger small">{{ review_form.comment.errors }}</div>
                         {% endif %}
                     </div>
-                    <button type="submit" class="btn btn-primary">Submit review</button>
+                    <button type="submit" class="btn btn-primary" data-submitting-text="Submitting…">
+                        <i class="bi bi-send"></i> Submit Review
+                    </button>
                 </form>
             </div>
         </div>
@@ -127,4 +165,17 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('input[name="action"]').forEach(input => {
+    input.addEventListener('change', () => {
+        const required = input.value === 'REQUEST_CHANGES' && input.checked;
+        document.getElementById('commentRequired')?.classList.toggle('d-none', !required);
+        const comment = document.getElementById('{{ review_form.comment.id_for_label }}');
+        if (comment) comment.required = required;
+    });
+});
+</script>
 {% endblock %}

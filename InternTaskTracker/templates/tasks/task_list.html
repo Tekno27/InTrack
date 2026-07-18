@@ -4,6 +4,15 @@
 
 {% block content %}
 <div class="card panel mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-funnel me-2"></i>Filter tasks</span>
+        <button class="btn btn-sm btn-link d-md-none text-decoration-none" type="button"
+                data-bs-toggle="collapse" data-bs-target="#taskFilters"
+                aria-expanded="false" aria-controls="taskFilters">
+            Show filters
+        </button>
+    </div>
+    <div class="collapse d-md-block" id="taskFilters">
     <div class="card-body">
         <form method="get" class="row g-2 align-items-end">
             <div class="col-md-3">
@@ -62,10 +71,15 @@
             </div>
         </form>
     </div>
+    </div>
 </div>
 
-<div class="d-flex justify-content-between align-items-center mb-2">
-    <span class="text-muted small">{{ page.paginator.count }} task{{ page.paginator.count|pluralize }} · {{ total_hours }} hours total</span>
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+    <span class="text-muted small">
+        <strong class="text-body">{{ page.paginator.count }}</strong> task{{ page.paginator.count|pluralize }}
+        <span class="mx-1">·</span>
+        <strong class="text-body">{{ total_hours }}</strong> hours total
+    </span>
     <a href="{% url 'task_create' %}" class="btn btn-primary btn-sm">
         <i class="bi bi-plus-lg"></i>
         {% if user.is_intern %}Log Work{% else %}Assign Task{% endif %}
@@ -84,7 +98,7 @@
             </thead>
             <tbody>
             {% for task in page %}
-            <tr>
+            <tr class="task-row">
                 {% if user.is_management %}
                 <td>{{ task.intern.get_full_name|default:task.intern.username }}</td>
                 {% endif %}
@@ -107,7 +121,22 @@
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="9" class="text-center text-muted py-5">No tasks found.</td></tr>
+            <tr>
+                <td colspan="9" class="text-center py-5">
+                    <div class="empty-state">
+                        <span class="empty-icon"><i class="bi bi-clipboard-x"></i></span>
+                        <h6>No tasks found</h6>
+                        <p>Try clearing the filters or create a new task.</p>
+                        {% if request.GET %}
+                        <a href="{% url 'task_list' %}" class="btn btn-sm btn-outline-primary">Clear filters</a>
+                        {% else %}
+                        <a href="{% url 'task_create' %}" class="btn btn-sm btn-primary">
+                            {% if user.is_intern %}Log Work{% else %}Assign Task{% endif %}
+                        </a>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
             {% endfor %}
             </tbody>
         </table>

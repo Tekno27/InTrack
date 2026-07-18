@@ -1,0 +1,103 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>InTrack · Intern Task &amp; Time Tracker</title>
+    <meta name="description" content="InTrack digitizes internship logbooks so interns can record daily work and supervisors can review progress with clarity.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="{% static 'css/landing.css' %}" rel="stylesheet">
+</head>
+<body class="landing">
+
+<header class="landing-nav">
+    <a class="nav-brand" href="{% url 'landing' %}">InTrack</a>
+    <a class="nav-login" href="{% url 'login' %}">Sign in</a>
+</header>
+
+<section class="hero" aria-label="InTrack introduction">
+    <div class="hero-media" aria-hidden="true">
+        <img src="{% static 'images/landing-hero.jpg' %}" alt="" class="hero-image">
+        <div class="hero-shade"></div>
+    </div>
+
+    <div class="hero-content">
+        <p class="brand reveal">InTrack</p>
+        <h1 class="headline reveal reveal-delay-1">Internship work, tracked with clarity.</h1>
+        <p class="lede reveal reveal-delay-2">
+            Replace paper logbooks with daily task logs, time tracking, and supervisor review—organized by department.
+        </p>
+        <div class="cta-group reveal reveal-delay-3">
+            <a class="btn-primary" href="{% url 'login' %}">Sign in to InTrack</a>
+            <a class="btn-ghost" href="#how-it-works">See how it works</a>
+        </div>
+    </div>
+</section>
+
+<section class="section" id="how-it-works">
+    <div class="section-inner">
+        <h2>Three steps from invite to reviewed work</h2>
+        <p class="section-lede">Built for departments where heads onboard people, supervisors coach, and interns log real hours.</p>
+
+        <ol class="steps">
+            <li>
+                <span class="step-index">01</span>
+                <h3>Heads invite the team</h3>
+                <p>Department heads create supervisors and interns, then assign each intern to a supervisor.</p>
+            </li>
+            <li>
+                <span class="step-index">02</span>
+                <h3>Interns log daily work</h3>
+                <p>Record tasks, categories, and time. Attach files when needed and submit work for review.</p>
+            </li>
+            <li>
+                <span class="step-index">03</span>
+                <h3>Supervisors review progress</h3>
+                <p>Approve solid work or request changes with feedback—then export reports when you need them.</p>
+            </li>
+        </ol>
+    </div>
+</section>
+
+<section class="section section-alt">
+    <div class="section-inner split">
+        <div>
+            <h2>Made for the people who run internships</h2>
+            <p class="section-lede">Everyone sees what they need—nothing more, nothing less.</p>
+        </div>
+        <ul class="audience-list">
+            <li>
+                <strong>Interns</strong>
+                <span>Log hours, track status, chat with peers, and submit work for review.</span>
+            </li>
+            <li>
+                <strong>Supervisors</strong>
+                <span>Assign tasks, monitor your team, approve submissions, and request changes.</span>
+            </li>
+            <li>
+                <strong>Department heads</strong>
+                <span>Invite members, manage categories, and oversee department-wide progress.</span>
+            </li>
+        </ul>
+    </div>
+</section>
+
+<section class="section closing">
+    <div class="section-inner closing-inner">
+        <h2>Ready when your team is.</h2>
+        <p>Accounts are created by your department head. If you already have an invite, sign in below.</p>
+        <a class="btn-primary" href="{% url 'login' %}">Sign in to InTrack</a>
+    </div>
+</section>
+
+<footer class="landing-footer">
+    <span>InTrack</span>
+    <span>Intern Task &amp; Time Tracker</span>
+</footer>
+
+<script src="{% static 'js/landing.js' %}"></script>
+</body>
+</html>
